@@ -1,44 +1,40 @@
-# KAN for Drug-Target Affinity Prediction (DTANet+)
+# DTANet-KAN for drug–target affinity prediction
 
-Independent side project on Drug-Target Affinity (DTA) prediction. This work builds upon the **DTANet+** framework and investigates the effectiveness of **Kolmogorov–Arnold Networks (KAN)** as an alternative to conventional neural network backbones.
+This undergraduate project explores a modification to the drug and protein encoders in a model based on [DTANet+](https://doi.org/10.1007/s12539-026-00851-6). The experiments used Python and PyTorch.
 
-## My Contributions
-- Implemented Kolmogorov–Arnold Networks (KAN) for DTA prediction
-- Processed the KIBA dataset and conducted hyperparameter tuning
-- Designed and conducted a controlled 2×2 ablation study (5k vs. full data; KAN vs. baseline)
-- Achieved consistent improvement over the reproduced baseline under identical settings
+## My contribution
 
-## Methods
-- **KAN design**: Replaces fixed activation functions at nodes with learnable univariate basis functions on network edges, offering greater flexibility and interpretability for complex nonlinear interactions.
-- **Dataset**: KIBA dataset
-- **Evaluation Metrics**: Mean Squared Error (MSE), Concordance Index (CI)
-- **Environment**: Python, PyTorch, Mac M4 Air (MPS acceleration)
+I proposed the encoder changes and independently designed the 2 × 2 KIBA ablation. I used generative AI to assist with code implementation. In the KAN variant, Kolmogorov–Arnold network layers replace the position-wise multilayer perceptrons (MLPs) in the multi-kernel convolutional branches of both encoders. The convolutions, cross-attention and final affinity regressor are retained.
 
-## Results
+## KIBA encoder ablation
 
-### 2×2 Ablation Study on KIBA
+I compared the baseline and KAN variant on 50,000 drug–target pairs and on the full dataset. Each configuration used a random 85/15 training/validation split (split seed 42). The table shows the highest validation concordance index (CI) over 20 epochs in one recorded run per configuration, with mean squared error (MSE) from the same epoch.
 
-| Data Size | Model | CI | MSE |
-|-----------|-------|-----|-----|
-| 5k | Baseline | 0.8105 | 0.3169 |
-| 5k | KAN | **0.8239** | **0.2911** |
-| Full | Baseline | 0.8379 | 0.2512 |
-| Full | **KAN** | **0.8462** | **0.2327** |
+| Dataset | Encoder | Best validation CI | MSE at that epoch |
+| --- | --- | ---: | ---: |
+| 50,000 pairs | Baseline | 0.8105 | 0.3169 |
+| 50,000 pairs | KAN | 0.8239 | 0.2911 |
+| Full | Baseline | 0.8379 | 0.2520 |
+| Full | KAN | 0.8462 | 0.2327 |
 
-![Three-way Comparison](results/kiba_three_way_comparison.png)
+The observed CI differences were +0.0134 and +0.0083, respectively. The random split evaluates held-out pairs. Generalization to unseen targets and variation across training seeds remain open questions.
 
-The KAN-augmented model consistently outperformed the reproduced baseline under identical random-split settings, achieving improved CI (+0.0083 to +0.0134) and lower MSE.
+See the [experiment notes](KIBA_ABLATION.md) and [validation summary](kiba_validation_summary.csv). Each archived training script and its epoch-by-epoch curve share a filename prefix, for example [the 50,000-pair KAN script](kiba_50k_kan_train.py) and [its curve](kiba_50k_kan_curve.csv). Running these scripts requires the project modules, separately obtained inputs and the paths described in the scripts.
 
-## Note on Evaluation Protocol
-The original DTANet+ paper reports results under a **cold-start** setting (unseen drugs/targets in the test set). Due to hardware constraints (Mac M4 Air, 16GB memory), this study adopted a **random split** for evaluation, which is a more permissive setting. Therefore, absolute performance metrics are **not directly comparable** to the original paper. The core contribution of this work is the controlled 2×2 ablation study, which demonstrates the effectiveness of the KAN module under a consistent, reproducible setting.
+## Follow-up work
 
-## References
-1. DTANet+: [Insert the actual title/authors of the DTANet+ paper here]
-2. KAN: Kolmogorov–Arnold Networks
-3. Code for data processing and benchmark evaluation is available in this repository. The KIBA dataset can be downloaded from [insert source].
+In a separate experiment, I compared a KAN scoring head with an MLP of the same size. Training settings for both heads were selected within the training data before scoring one development fold (seed 42). Each drug contributed equally to the reported MSE.
 
-## How to Run
-```bash
-pip install -r requirements.txt
-python train_kiba.py kan-dta-prediction
-Independent side project implementing Kolmogorov–Arnold Networks (KAN) for drug-target affinity (DTA) prediction, benchmarked on  KIBA datasets against the HGRL-DTA baseline. Python/PyTorch.
+| Method | Drug-weighted MSE (equal weight per drug) |
+| --- | ---: |
+| Fusion KAN after training-set selection | 0.7221 |
+| MLP after training-set selection | 0.7289 |
+| KronRLS reference | 0.7163 |
+
+On this fold, the KAN head had lower error than the MLP, and KronRLS had the lowest error. These preliminary values concern a different model component and evaluation protocol from the KIBA encoder ablation above.
+
+## Related material
+
+- [Original DTANet+ implementation](https://github.com/202324131016T/DTANet_plus)
+- [KAN: Kolmogorov–Arnold Networks](https://arxiv.org/abs/2404.19756)
+- [Archived three-way comparison figure](results/kiba_three_way_comparison.png)
