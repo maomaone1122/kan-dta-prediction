@@ -1,0 +1,5 @@
+pair_set,model,epochs,best_validation_CI
+50k,baseline,20,0.8105
+50k,kan,20,0.8239
+full,baseline,20,0.8379
+full,kan,20,0.8462
